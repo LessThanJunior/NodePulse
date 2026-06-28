@@ -1,6 +1,7 @@
 #ifndef METRICS_HPP
 #define METRICS_HPP
 #include <string>
+#include <cstdint>
 
 struct SystemInfo{
     std::string os;
@@ -11,16 +12,20 @@ struct SystemInfo{
 
 struct CpuData{
     double usage;
-    int cores;
+    uint16_t temp;
+    uint16_t cores;
+    uint16_t threads;
+    std::string model;
 };
 
 struct MemoryData{
-    double usage;
-    double free;
+    // in kB;
+    uint64_t usage;
+    uint64_t free;
 };
 
 struct DiskData{
-    double usage;
+    uint64_t usage; 
     double free;
 };
 
