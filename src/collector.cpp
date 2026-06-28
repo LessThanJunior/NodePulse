@@ -28,10 +28,9 @@ CpuData LinuxBackend::readCpu(){
     while(std::getline(stream, cpuInfo)){
         std::string formatted = substr(cpuInfo, ':');
         if(row == 5) cpu.model = formatted.substr(1);
-        trim(formatted);
-        if(row == 11) cpu.threads = std::stoul(formatted);
-        if(row == 13) cpu.cores = std::stoul(formatted);
-        if(row > 13) break;
+        else if(row == 11) { trim(formatted); cpu.threads = std::stoul(formatted); }
+        else if(row == 13) { trim(formatted); cpu.cores = std::stoul(formatted); }
+        else if(row > 13) break;
         row++;
     }
     stream.close();
@@ -49,12 +48,14 @@ MemoryData LinuxBackend::readMemory(){
     std::string memoryInfo;
     int row = 1;
     uint64_t total = 0;
+
     while(std::getline(stream, memoryInfo)){
         std::string formatted = substr(memoryInfo, ':');
         trim(formatted);
+
         if(row == 1) total = std::stoull(formatted);
-        if(row == 3) memory.free = std::stoull(formatted);;
-        if(row > 3) break;
+        else if(row == 3) memory.free = std::stoull(formatted);
+        else if(row > 3) break;
         row++;
     }
     memory.usage = total - memory.free;
