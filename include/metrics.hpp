@@ -30,8 +30,8 @@ struct DiskData{
 };
 
 struct NetworkData{
-    double networkRx;
-    double networkTx;
+    double receivedBytes;
+    double transmittedBytes;
     std::string ip;
 };
 

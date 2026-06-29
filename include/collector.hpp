@@ -1,6 +1,7 @@
 #ifndef COLLECTOR_HPP
 #define COLLECTOR_HPP
 #include "metrics.hpp"
+#include <chrono>
 #include <memory>
 
 class BaseCollector{
@@ -50,8 +51,10 @@ public:
 class SystemCollector : public BaseCollector{
     std::unique_ptr<BaseBackend> backend;
 public:
+    static uint16_t seconds;
     SystemCollector() : backend(BaseBackendFactory::create()){}
     SystemMetricsSnapshot collect() override;
+    void setTimeout(uint16_t seconds);
 };
 
 #endif

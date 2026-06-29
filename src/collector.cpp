@@ -1,19 +1,34 @@
 #include "collector.hpp"
 #include "metrics.hpp"
+#include <chrono>
 #include <fstream>
 #include <ios>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <algorithm>
+#include <thread>
 
-std::string substr(const std::string& message, char delimiter){
+std::string splitAfter(const std::string& message, char delimiter){
     size_t indexSplit = message.find(delimiter);
     std::string substringUnformatted = message.substr(indexSplit + 1);
     return substringUnformatted;
 }
 
+std::string splitBefore(const std::string& message, char delimiter){
+    size_t indexSplit = message.find(delimiter);
+    std::string substringUnformatted = message.substr(0, indexSplit);
+    return substringUnformatted;
+}
+
 void trim(std::string& message){
     message.erase(std::remove(message.begin(), message.end(), ' '));
+}
+
+uint16_t SystemCollector::seconds = 1;
+
+void SystemCollector::setTimeout(uint16_t seconds){
+    this->seconds = seconds;
 }
 
 CpuData LinuxBackend::readCpu(){
@@ -26,7 +41,7 @@ CpuData LinuxBackend::readCpu(){
     std::string cpuInfo;
     int row = 1;
     while(std::getline(stream, cpuInfo)){
-        std::string formatted = substr(cpuInfo, ':');
+        std::string formatted = splitAfter(cpuInfo, ':');
         if(row == 5) cpu.model = formatted.substr(1);
         else if(row == 11) { trim(formatted); cpu.threads = std::stoul(formatted); }
         else if(row == 13) { trim(formatted); cpu.cores = std::stoul(formatted); }
@@ -50,7 +65,7 @@ MemoryData LinuxBackend::readMemory(){
     uint64_t total = 0;
 
     while(std::getline(stream, memoryInfo)){
-        std::string formatted = substr(memoryInfo, ':');
+        std::string formatted = splitAfter(memoryInfo, ':');
         trim(formatted);
 
         if(row == 1) total = std::stoull(formatted);
@@ -63,12 +78,37 @@ MemoryData LinuxBackend::readMemory(){
     return memory;
 };
 
+void setNetworkData(const std::string& interfaceName, NetworkData& network){
+    std::fstream stream;
+    stream.open("/proc/net/dev", std::ios_base::in);
+    if(!stream.is_open())
+        std::cerr << "Can't open file /proc/net/dev\n";
+
+    std::string networkInfo;
+    std::getline(stream, networkInfo);
+    std::getline(stream, networkInfo);
+
+    while (std::getline(stream, networkInfo)) {
+        if(splitBefore(networkInfo, ':') == interfaceName){
+            std::string data = splitAfter(networkInfo, ':');
+            std::stringstream stringstream(data);
+            unsigned long long dummy;
+            stringstream >> network.receivedBytes;
+            for(int i = 0; i < 7; i++) stringstream >> dummy;
+            stringstream >> network.transmittedBytes;
+        }
+    }
+}
+
 NetworkData LinuxBackend::readNetwork(){
-    NetworkData network;
-    network.networkRx = 20.3;
-    network.networkTx = 14.3;
-    network.ip = "###.###.###.##";
-    return network;
+    NetworkData previous, current;
+    setNetworkData("enp3s0", previous);
+    std::this_thread::sleep_for(std::chrono::seconds(SystemCollector::seconds));
+    setNetworkData("enp3s0", current);
+    NetworkData speed;
+    speed.receivedBytes = current.receivedBytes - previous.receivedBytes;
+    speed.transmittedBytes = current.transmittedBytes - previous.transmittedBytes;
+    return speed;
 };
 
 DiskData LinuxBackend::readDisk(){
