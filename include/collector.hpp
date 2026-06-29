@@ -1,7 +1,6 @@
 #ifndef COLLECTOR_HPP
 #define COLLECTOR_HPP
 #include "metrics.hpp"
-#include <chrono>
 #include <memory>
 
 class BaseCollector{

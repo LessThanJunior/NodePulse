@@ -1,7 +1,5 @@
-#include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <thread>
 #include "collector.hpp"
 
 int main() {
