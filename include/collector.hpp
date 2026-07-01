@@ -67,6 +67,7 @@ class GpuBaseFactory{
         if(nvidia){
             return std::make_unique<GpuNvidia>();
         }
+        return {};
     }
 };
 

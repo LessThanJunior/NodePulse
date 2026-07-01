@@ -4,7 +4,6 @@
 #include <ios>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <algorithm>
 #include <array>
