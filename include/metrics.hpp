@@ -30,9 +30,14 @@ struct DiskData{
 };
 
 struct NetworkData{
-    double receivedBytes;
-    double transmittedBytes;
+    uint64_t receivedBytes;
+    uint64_t transmittedBytes;
     std::string ip;
+};
+
+struct GpuData{
+    uint16_t temp;
+    uint16_t usage;
 };
 
 struct SystemMetrics{
@@ -40,6 +45,7 @@ struct SystemMetrics{
     MemoryData memory;
     DiskData disk;
     NetworkData network;
+    GpuData gpu;
 };
 
 struct SystemMetricsSnapshot{

@@ -1,13 +1,13 @@
 #include "collector.hpp"
 #include "metrics.hpp"
-#include <chrono>
 #include <fstream>
 #include <ios>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <algorithm>
-#include <thread>
+#include <array>
 
 std::string splitAfter(const std::string& message, char delimiter){
     size_t indexSplit = message.find(delimiter);
@@ -100,15 +100,39 @@ void setNetworkData(const std::string& interfaceName, NetworkData& network){
     }
 }
 
+GpuData GpuNvidia::readGpu(){
+    std::array<char, 128> buffer;
+    std::string result;
+    
+    std::string temp = "nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits";
+    std::string usage = "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits";
+    std::unique_ptr<FILE, decltype(&pclose)> pipe_temp(popen(temp.c_str(), "r"), pclose);
+    std::unique_ptr<FILE, decltype(&pclose)> pipe_usage(popen(usage.c_str(), "r"), pclose);
+    if (!pipe_temp) {
+        std::cerr << "popen() failed!" << std::endl;
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe_temp.get()) != nullptr) {
+        result += buffer.data();
+    }
+    
+    GpuData gpu;
+    gpu.temp = std::stoul(result);
+    buffer = {};
+    result = "";
+
+    
+    while (fgets(buffer.data(), buffer.size(), pipe_usage.get()) != nullptr) {
+        result += buffer.data();
+    }
+    gpu.usage = std::stol(result.substr(0, result.size() - 1));
+    return gpu;
+};
+
 NetworkData LinuxBackend::readNetwork(){
-    NetworkData previous, current;
+    NetworkData previous;
     setNetworkData("enp3s0", previous);
-    std::this_thread::sleep_for(std::chrono::seconds(SystemCollector::seconds));
-    setNetworkData("enp3s0", current);
-    NetworkData speed;
-    speed.receivedBytes = current.receivedBytes - previous.receivedBytes;
-    speed.transmittedBytes = current.transmittedBytes - previous.transmittedBytes;
-    return speed;
+    return previous;
 };
 
 DiskData LinuxBackend::readDisk(){
@@ -124,5 +148,6 @@ SystemMetricsSnapshot SystemCollector::collect(){
     snapshot.metrics.memory = backend->readMemory();
     snapshot.metrics.disk = backend->readDisk();
     snapshot.metrics.network = backend->readNetwork();
+    snapshot.metrics.gpu = gpuBackend->readGpu();
     return snapshot;
 };
