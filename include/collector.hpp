@@ -2,6 +2,7 @@
 #define COLLECTOR_HPP
 #include "metrics.hpp"
 #include <memory>
+#include <string>
 
 class BaseCollector{
 public:
@@ -47,11 +48,37 @@ public:
     }
 };
 
+class GpuBase{
+public:
+    virtual GpuData readGpu() = 0; 
+    virtual ~GpuBase() = default;
+};
+
+class GpuNvidia : public GpuBase{
+public:
+    GpuData readGpu() override;
+};
+
+class GpuBaseFactory{
+    public:
+    static std::unique_ptr<GpuBase> create(){
+        std::string command = "nvidia-smi --version";
+        std::unique_ptr<FILE, decltype(&pclose)> nvidia(popen(command.c_str(), "r"), pclose);
+        if(nvidia){
+            return std::make_unique<GpuNvidia>();
+        }
+        return {};
+    }
+};
+
 class SystemCollector : public BaseCollector{
     std::unique_ptr<BaseBackend> backend;
+    std::unique_ptr<GpuBase> gpuBackend;
 public:
-    SystemCollector() : backend(BaseBackendFactory::create()){}
+    static uint16_t seconds;
+    SystemCollector() : backend(BaseBackendFactory::create()), gpuBackend(GpuBaseFactory::create()){}
     SystemMetricsSnapshot collect() override;
+    void setTimeout(uint16_t seconds);
 };
 
 #endif
